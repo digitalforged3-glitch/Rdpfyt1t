@@ -14,7 +14,7 @@ BOT_TOKENS = [
     "8959720350:AAFj3nH2AGmAjh5WUBEkAdCvMGuIAfQMHxw"
 ]
 
-DELAY = 0.1
+DELAY = 0
 # ---------------------
 
 is_fighting = {}
