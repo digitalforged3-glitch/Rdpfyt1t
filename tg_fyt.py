@@ -2,7 +2,6 @@ import asyncio
 from telethon import TelegramClient, events
 
 # --- CONFIGURATION ---
-# Aapki real keys jo aapne nikali thin
 API_ID = 39630731        
 API_HASH = "ea47c620b13cf4316bf69956a8e6eba8"
 
@@ -15,7 +14,7 @@ BOT_TOKENS = [
     "8959720350:AAFj3nH2AGmAjh5WUBEkAdCvMGuIAfQMHxw"
 ]
 
-DELAY = 0.1 # Safe loop timing taaki server block na kare
+DELAY = 0.1
 # ---------------------
 
 is_fighting = {}
@@ -26,7 +25,6 @@ async def start_all_bots():
     print(f"⚙️ Total {len(BOT_TOKENS)} Bots ko connect kiya ja rha h...")
     for idx, token in enumerate(BOT_TOKENS):
         try:
-            # Crash bypass karne ke liye cluster engine session
             client = TelegramClient(f'bot_army_fresh_{idx}', API_ID, API_HASH)
             await client.start(bot_token=token)
             bot_clients.append(client)
@@ -36,7 +34,6 @@ async def start_all_bots():
 
     if bot_clients:
         for client in bot_clients:
-            # [INCOMING GLOBAL FIX] Aapki real id ke commands read karne ke liye
             @client.on(events.NewMessage(pattern=r'\.fyt(?:\s+(.+))?', incoming=True))
             async def start_fyt(event):
                 chat_id = event.chat_id
@@ -48,13 +45,11 @@ async def start_all_bots():
                 if is_fighting.get(chat_id, False):
                     return
 
-                # [ID PROTECTOR] Aapki command instant delete hogi taaki aapka number safe rahe
                 try:
                     await event.delete()
                 except:
                     pass
 
-                # Danda (|) split logic
                 messages_list = [line.strip() for line in raw_text.split('|') if line.strip()]
                 is_fighting[chat_id] = True
                 spam_lines[chat_id] = messages_list
@@ -66,7 +61,6 @@ async def start_all_bots():
                         if not is_fighting.get(chat_id, False):
                             break
                         
-                        # Sirf bots bhejenge, aapka account hamesha silent rahega
                         tasks = [bot.send_message(chat_id, msg) for bot in bot_clients]
                         try:
                             await asyncio.gather(*tasks)
@@ -81,7 +75,7 @@ async def start_all_bots():
                 if is_fighting.get(chat_id, False):
                     is_fighting[chat_id] = False
                     try:
-                        await event.delete() # Stop command bhi screen se saaf
+                        await event.delete()
                     except:
                         pass
 
