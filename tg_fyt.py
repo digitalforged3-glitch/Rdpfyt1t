@@ -12,7 +12,6 @@ BOT_TOKENS = [
     "8971859921:AAHS6u-t_QGrabanIGsAFCKF1tc_4pT9hE8",
     "8959720350:AAFj3nH2AGmAjh5WUBEkAdCvMGuIAfQMHxw"
 ]
-# DELAY KHATAM KAR DIYA HAI BILKUL
 # ---------------------
 
 is_fighting = {}
@@ -53,24 +52,21 @@ async def start_all_bots():
             is_fighting[chat_id] = True
             spam_lines[chat_id] = messages_list
             
-            await event.respond(f"🚀 **Max Speed Blast Activated! Sending {len(messages_list)} lines without delay.**")
+            await event.respond(f"⚡ **GOD SPEED ACTIVATED! Nonstop firing {len(messages_list)} lines...**")
 
+            # Is loop me hum 'await' nahi kar rahe hain messages bhejne ke liye
+            # Isliye bina 1 microsecond ruke saare messages ek sath flood ho jayenge
             while is_fighting.get(chat_id, False):
                 for msg in spam_lines[chat_id]:
                     if not is_fighting.get(chat_id, False):
                         break
                     
-                    # Saare bots ek sath ek hi microsecond me message bhejenge
-                    tasks = []
                     for bot in bot_clients:
-                        # return_exceptions=True se agar koi bot block hota hai to baaki rukenge nahi
-                        tasks.append(bot.send_message(chat_id, msg))
-                    
-                    try:
-                        await asyncio.gather(*tasks, return_exceptions=True)
-                        # Koi delay nahi, turant agla message loops me chalega
-                    except:
-                        pass
+                        # asyncio.create_task se background me message chala jata hai, loop rukta nahi hai
+                        asyncio.create_task(bot.send_message(chat_id, msg))
+                
+                # Ek round poora hone ke baad micro-delay taaki script crash na ho aur processor free rahe
+                await asyncio.sleep(0.01)
 
         @master_client.on(events.NewMessage(pattern=r'\.stop', incoming=True))
         async def stop_fyt(event):
@@ -81,12 +77,12 @@ async def start_all_bots():
                     await event.delete()
                 except:
                     pass
-                await event.respond("🛑 **Blast Stopped!**")
+                await event.respond("🛑 **God Speed Stopped!**")
 
 async def main():
     await start_all_bots()
     if bot_clients:
-        print("🤖 [BLAST ARMY LIVE] Waiting for '.fyt' command...")
+        print("🤖 [GOD SPEED LIVE] Waiting for '.fyt' command...")
         await asyncio.gather(*[client.run_until_disconnected() for client in bot_clients])
 
 if __name__ == '__main__':
