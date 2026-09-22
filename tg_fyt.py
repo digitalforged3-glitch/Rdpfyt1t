@@ -5,7 +5,6 @@ from telethon import TelegramClient, events
 API_ID = 39630731        
 API_HASH = "ea47c620b13cf4316bf69956a8e6eba8"
 
-# Aapke 5 naye fresh tokens perfectly aligned hain
 BOT_TOKENS = [
     "8919356174:AAGqQj042a11UKyccu69xv3MU1QCFLuiXbw",
     "8942102372:AAGr94WpSfW4obpUYuNpFR3bH0lx00O9O94",
@@ -14,7 +13,9 @@ BOT_TOKENS = [
     "8959720350:AAFj3nH2AGmAjh5WUBEkAdCvMGuIAfQMHxw"
 ]
 
-DELAY = 
+# Bohot kam delay (e.g., 0.1 ya 0.2) rakhoge to fast chalega
+# Agar fir bhi rukne lage to isse badha kar 0.4 ya 0.5 kar lena
+DELAY = 0
 # ---------------------
 
 is_fighting = {}
@@ -33,56 +34,68 @@ async def start_all_bots():
             print(f"❌ Bot connection error: {e}")
 
     if bot_clients:
-        for client in bot_clients:
-            @client.on(events.NewMessage(pattern=r'\.fyt(?:\s+(.+))?', incoming=True))
-            async def start_fyt(event):
-                chat_id = event.chat_id
-                raw_text = event.pattern_match.group(1)
+        # Har bot par event handler lagane ke bajay pehle bot par lagaya taaki duplicate commands run na ho
+        master_client = bot_clients[0]
 
-                if not raw_text:
-                    return
+        @master_client.on(events.NewMessage(pattern=r'\.fyt(?:\s+(.+))?', incoming=True))
+        async def start_fyt(event):
+            chat_id = event.chat_id
+            raw_text = event.pattern_match.group(1)
 
-                if is_fighting.get(chat_id, False):
-                    return
+            if not raw_text:
+                return
 
+            if is_fighting.get(chat_id, False):
+                return
+
+            try:
+                await event.delete()
+            except:
+                pass
+
+            messages_list = [line.strip() for line in raw_text.split('|') if line.strip()]
+            is_fighting[chat_id] = True
+            spam_lines[chat_id] = messages_list
+            
+            await event.respond(f"🤖 **5-Bot Rotation Army Activated! Loaded {len(messages_list)} live lines.**")
+
+            bot_count = len(bot_clients)
+            bot_index = 0  # Baari-baari bot select karne ke liye
+
+            while is_fighting.get(chat_id, False):
+                for msg in spam_lines[chat_id]:
+                    if not is_fighting.get(chat_id, False):
+                        break
+                    
+                    # Round-robin format me ek bot select karna
+                    current_bot = bot_clients[bot_index]
+                    bot_index = (bot_index + 1) % bot_count
+
+                    try:
+                        # Bina gather ke single message bhej rahe hain taaki rate-limit na aaye
+                        await current_bot.send_message(chat_id, msg)
+                        await asyncio.sleep(DELAY)
+                    except Exception as e:
+                        print(f"⚠️ Bot {bot_index} pe limit ya error: {e}")
+                        # Agar kisi bot par error aaye to bina ruke agle bot pe skip kar jayega
+                        await asyncio.sleep(0.1)
+
+        @master_client.on(events.NewMessage(pattern=r'\.stop', incoming=True))
+        async def stop_fyt(event):
+            chat_id = event.chat_id
+            if is_fighting.get(chat_id, False):
+                is_fighting[chat_id] = False
                 try:
                     await event.delete()
                 except:
                     pass
-
-                messages_list = [line.strip() for line in raw_text.split('|') if line.strip()]
-                is_fighting[chat_id] = True
-                spam_lines[chat_id] = messages_list
-                
-                await event.respond(f"🤖 **5-Bot Clean Army Activated! Loaded {len(messages_list)} live lines.**")
-
-                while is_fighting.get(chat_id, False):
-                    for msg in spam_lines[chat_id]:
-                        if not is_fighting.get(chat_id, False):
-                            break
-                        
-                        tasks = [bot.send_message(chat_id, msg) for bot in bot_clients]
-                        try:
-                            await asyncio.gather(*tasks)
-                            await asyncio.sleep(DELAY)
-                        except Exception as e:
-                            print(f"⚠️ Limit: {e}")
-                            await asyncio.sleep(1)
-
-            @client.on(events.NewMessage(pattern=r'\.stop', incoming=True))
-            async def stop_fyt(event):
-                chat_id = event.chat_id
-                if is_fighting.get(chat_id, False):
-                    is_fighting[chat_id] = False
-                    try:
-                        await event.delete()
-                    except:
-                        pass
+                await event.respond("🛑 **Army Deactivated!**")
 
 async def main():
     await start_all_bots()
     if bot_clients:
         print("🤖 [FRESH ARMY LIVE] Waiting for '.fyt' command from your ID...")
+        # Sabhi bots ko background me run rakhne ke liye
         await asyncio.gather(*[client.run_until_disconnected() for client in bot_clients])
 
 if __name__ == '__main__':
