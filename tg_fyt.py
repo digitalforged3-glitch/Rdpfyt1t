@@ -12,10 +12,7 @@ BOT_TOKENS = [
     "8971859921:AAHS6u-t_QGrabanIGsAFCKF1tc_4pT9hE8",
     "8959720350:AAFj3nH2AGmAjh5WUBEkAdCvMGuIAfQMHxw"
 ]
-
-# Bohot kam delay (e.g., 0.1 ya 0.2) rakhoge to fast chalega
-# Agar fir bhi rukne lage to isse badha kar 0.4 ya 0.5 kar lena
-DELAY = 0
+# DELAY KHATAM KAR DIYA HAI BILKUL
 # ---------------------
 
 is_fighting = {}
@@ -34,7 +31,6 @@ async def start_all_bots():
             print(f"❌ Bot connection error: {e}")
 
     if bot_clients:
-        # Har bot par event handler lagane ke bajay pehle bot par lagaya taaki duplicate commands run na ho
         master_client = bot_clients[0]
 
         @master_client.on(events.NewMessage(pattern=r'\.fyt(?:\s+(.+))?', incoming=True))
@@ -57,28 +53,24 @@ async def start_all_bots():
             is_fighting[chat_id] = True
             spam_lines[chat_id] = messages_list
             
-            await event.respond(f"🤖 **5-Bot Rotation Army Activated! Loaded {len(messages_list)} live lines.**")
-
-            bot_count = len(bot_clients)
-            bot_index = 0  # Baari-baari bot select karne ke liye
+            await event.respond(f"🚀 **Max Speed Blast Activated! Sending {len(messages_list)} lines without delay.**")
 
             while is_fighting.get(chat_id, False):
                 for msg in spam_lines[chat_id]:
                     if not is_fighting.get(chat_id, False):
                         break
                     
-                    # Round-robin format me ek bot select karna
-                    current_bot = bot_clients[bot_index]
-                    bot_index = (bot_index + 1) % bot_count
-
+                    # Saare bots ek sath ek hi microsecond me message bhejenge
+                    tasks = []
+                    for bot in bot_clients:
+                        # return_exceptions=True se agar koi bot block hota hai to baaki rukenge nahi
+                        tasks.append(bot.send_message(chat_id, msg))
+                    
                     try:
-                        # Bina gather ke single message bhej rahe hain taaki rate-limit na aaye
-                        await current_bot.send_message(chat_id, msg)
-                        await asyncio.sleep(DELAY)
-                    except Exception as e:
-                        print(f"⚠️ Bot {bot_index} pe limit ya error: {e}")
-                        # Agar kisi bot par error aaye to bina ruke agle bot pe skip kar jayega
-                        await asyncio.sleep(0.1)
+                        await asyncio.gather(*tasks, return_exceptions=True)
+                        # Koi delay nahi, turant agla message loops me chalega
+                    except:
+                        pass
 
         @master_client.on(events.NewMessage(pattern=r'\.stop', incoming=True))
         async def stop_fyt(event):
@@ -89,13 +81,12 @@ async def start_all_bots():
                     await event.delete()
                 except:
                     pass
-                await event.respond("🛑 **Army Deactivated!**")
+                await event.respond("🛑 **Blast Stopped!**")
 
 async def main():
     await start_all_bots()
     if bot_clients:
-        print("🤖 [FRESH ARMY LIVE] Waiting for '.fyt' command from your ID...")
-        # Sabhi bots ko background me run rakhne ke liye
+        print("🤖 [BLAST ARMY LIVE] Waiting for '.fyt' command...")
         await asyncio.gather(*[client.run_until_disconnected() for client in bot_clients])
 
 if __name__ == '__main__':
